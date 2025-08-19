@@ -9,13 +9,13 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
   "main": "./out/extension.js",
+  "activationEvents": [],
   "contributes": {
     "commands": [
       {
-        "command": "filetree-exporter.helloWorld",
-        "title": "Hello World"
+        "command": "extension.extractFileStructure",
+        "title": "Extract File Structure"
       }
     ]
   },
