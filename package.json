@@ -3,7 +3,8 @@
   "publisher": "apex-tools",
   "displayName": "FileTree Exporter",
   "description": "Export the file and folder structure of your project to a readable text file.",
-  "version": "0.0.1",
+  "icon": "images/logo.png",
+  "version": "0.0.2",
   "engines": {
     "vscode": "^1.102.0"
   },

@@ -78,12 +78,21 @@ async function ensureFileTreeIgnoreExists(rootPath: string): Promise<void> {
   } catch {
     // File doesn't exist, create it
     try {
-      await fs.promises.writeFile(ignoreFilePath, DEFAULT_FILETREEIGNORE_CONTENT, 'utf8');
-      vscode.window.showInformationMessage('Created .filetreeignore with default patterns');
+      await fs.promises.writeFile(
+        ignoreFilePath,
+        DEFAULT_FILETREEIGNORE_CONTENT,
+        "utf8"
+      );
+      vscode.window.showInformationMessage(
+        "Created .filetreeignore with default patterns"
+      );
       outputChannel.appendLine(`Created .filetreeignore at: ${ignoreFilePath}`);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      outputChannel.appendLine(`Failed to create .filetreeignore: ${errorMessage}`);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      outputChannel.appendLine(
+        `Failed to create .filetreeignore: ${errorMessage}`
+      );
       throw new Error(`Failed to create .filetreeignore: ${errorMessage}`);
     }
   }
@@ -96,16 +105,22 @@ async function loadIgnorePatterns(rootPath: string): Promise<string[]> {
   const ignoreFilePath = path.join(rootPath, ".filetreeignore");
 
   try {
-    const content = await fs.promises.readFile(ignoreFilePath, 'utf8');
+    const content = await fs.promises.readFile(ignoreFilePath, "utf8");
     const lines = content.split(/\r?\n/);
     const patterns = lines
-      .map(line => line.trim())
-      .filter(line => line !== "" && !line.startsWith("#"));
+      .map((line) => line.trim())
+      .filter((line) => line !== "" && !line.startsWith("#"));
 
-    outputChannel.appendLine(`Loaded ${patterns.length} ignore patterns from .filetreeignore`);
+    outputChannel.appendLine(
+      `Loaded ${patterns.length} ignore patterns from .filetreeignore`
+    );
     return patterns;
   } catch (error) {
-    outputChannel.appendLine(`Failed to read .filetreeignore: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    outputChannel.appendLine(
+      `Failed to read .filetreeignore: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`
+    );
     return [];
   }
 }
@@ -113,19 +128,25 @@ async function loadIgnorePatterns(rootPath: string): Promise<string[]> {
 /**
  * Check if a path should be ignored based on patterns
  */
-function shouldIgnorePath(relativePath: string, ignorePatterns: string[]): boolean {
-  return ignorePatterns.some(pattern => {
+function shouldIgnorePath(
+  relativePath: string,
+  ignorePatterns: string[]
+): boolean {
+  return ignorePatterns.some((pattern) => {
     // Handle glob-like patterns
-    if (pattern.endsWith('/')) {
+    if (pattern.endsWith("/")) {
       // Directory pattern
-      return relativePath.startsWith(pattern) || relativePath.startsWith(pattern.slice(0, -1));
-    } else if (pattern.includes('*')) {
+      return (
+        relativePath.startsWith(pattern) ||
+        relativePath.startsWith(pattern.slice(0, -1))
+      );
+    } else if (pattern.includes("*")) {
       // Simple wildcard support
-      const regex = new RegExp(pattern.replace(/\*/g, '.*'));
+      const regex = new RegExp(pattern.replace(/\*/g, ".*"));
       return regex.test(relativePath);
     } else {
       // Exact match or prefix match
-      return relativePath === pattern || relativePath.startsWith(pattern + '/');
+      return relativePath === pattern || relativePath.startsWith(pattern + "/");
     }
   });
 }
@@ -133,15 +154,23 @@ function shouldIgnorePath(relativePath: string, ignorePatterns: string[]): boole
 /**
  * Recursive function to get files and folders using async operations
  */
-async function getAllFilesAndFolders(dirPath: string, indent: string, ignorePatterns: string[], rootPath: string): Promise<string[]> {
+async function getAllFilesAndFolders(
+  dirPath: string,
+  indent: string,
+  ignorePatterns: string[],
+  rootPath: string
+): Promise<string[]> {
   let result: string[] = [];
 
   try {
     const entries = await fs.promises.readdir(dirPath, { withFileTypes: true });
 
-    for (const entry of entries) {
+    for (let index = 0; index < entries.length; index++) {
+      const entry = entries[index];
       const fullPath = path.join(dirPath, entry.name);
-      const relativePath = path.relative(rootPath, fullPath).replace(/\\/g, '/'); // Normalize path separators
+      const relativePath = path
+        .relative(rootPath, fullPath)
+        .replace(/\\/g, "/");
 
       // Skip ignored paths
       if (shouldIgnorePath(relativePath, ignorePatterns)) {
@@ -149,23 +178,37 @@ async function getAllFilesAndFolders(dirPath: string, indent: string, ignorePatt
         continue;
       }
 
-      const line = `${indent}${entry.name}`;
-      result.push(line);
+      const isLast = index === entries.length - 1;
+
+      const prefix = `${indent}${isLast ? "└── " : "├── "}`;
+
+      result.push(`${prefix}${entry.name}`);
 
       if (entry.isDirectory()) {
         try {
-          const subResults = await getAllFilesAndFolders(fullPath, indent + "  ", ignorePatterns, rootPath);
+          const subResults = await getAllFilesAndFolders(
+            fullPath,
+            indent + "  ",
+            ignorePatterns,
+            rootPath
+          );
           result = result.concat(subResults);
         } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-          outputChannel.appendLine(`Error reading directory ${fullPath}: ${errorMessage}`);
+          const errorMessage =
+            error instanceof Error ? error.message : "Unknown error";
+          outputChannel.appendLine(
+            `Error reading directory ${fullPath}: ${errorMessage}`
+          );
           result.push(`${indent}  [Error reading directory: ${errorMessage}]`);
         }
       }
     }
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    outputChannel.appendLine(`Error reading directory ${dirPath}: ${errorMessage}`);
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+    outputChannel.appendLine(
+      `Error reading directory ${dirPath}: ${errorMessage}`
+    );
     throw new Error(`Failed to read directory ${dirPath}: ${errorMessage}`);
   }
 
@@ -177,33 +220,40 @@ async function getAllFilesAndFolders(dirPath: string, indent: string, ignorePatt
  */
 async function extractFileStructure(): Promise<void> {
   // Check if workspace is open
-  if (!vscode.workspace.workspaceFolders || vscode.workspace.workspaceFolders.length === 0) {
-    vscode.window.showErrorMessage('No workspace is open. Please open a folder or workspace first.');
-    outputChannel.appendLine('Error: No workspace is open');
+  if (
+    !vscode.workspace.workspaceFolders ||
+    vscode.workspace.workspaceFolders.length === 0
+  ) {
+    vscode.window.showErrorMessage(
+      "No workspace is open. Please open a folder or workspace first."
+    );
+    outputChannel.appendLine("Error: No workspace is open");
     return;
   }
 
-  vscode.window.showInformationMessage('Starting file structure extraction...');
-  outputChannel.appendLine('Starting file structure extraction...');
+  vscode.window.showInformationMessage("Starting file structure extraction...");
+  outputChannel.appendLine("Starting file structure extraction...");
 
   // Prompt for output file name
   const outputFileName = await vscode.window.showInputBox({
-    prompt: 'Enter the output file name',
-    value: 'file-structure.txt',
+    prompt: "Enter the output file name",
+    value: "file-structure.txt",
     validateInput: (value) => {
       if (!value || value.trim().length === 0) {
-        return 'File name cannot be empty';
+        return "File name cannot be empty";
       }
       if (!/^[a-zA-Z0-9._-]+$/.test(value)) {
-        return 'File name contains invalid characters. Use only letters, numbers, dots, hyphens, and underscores.';
+        return "File name contains invalid characters. Use only letters, numbers, dots, hyphens, and underscores.";
       }
       return null;
-    }
+    },
   });
 
   if (!outputFileName) {
-    vscode.window.showInformationMessage('File structure extraction cancelled.');
-    outputChannel.appendLine('Operation cancelled by user');
+    vscode.window.showInformationMessage(
+      "File structure extraction cancelled."
+    );
+    outputChannel.appendLine("Operation cancelled by user");
     return;
   }
 
@@ -212,35 +262,63 @@ async function extractFileStructure(): Promise<void> {
 
   for (let i = 0; i < vscode.workspace.workspaceFolders.length; i++) {
     const workspaceFolder = vscode.workspace.workspaceFolders[i];
-    vscode.window.showInformationMessage(`Processing workspace ${i + 1}/${vscode.workspace.workspaceFolders.length}: ${workspaceFolder.name}`);
-    outputChannel.appendLine(`Processing workspace: ${workspaceFolder.name} (${workspaceFolder.uri.fsPath})`);
+    vscode.window.showInformationMessage(
+      `Processing workspace ${i + 1}/${
+        vscode.workspace.workspaceFolders.length
+      }: ${workspaceFolder.name}`
+    );
+    outputChannel.appendLine(
+      `Processing workspace: ${workspaceFolder.name} (${workspaceFolder.uri.fsPath})`
+    );
 
     try {
       // Ensure .filetreeignore exists
       await ensureFileTreeIgnoreExists(workspaceFolder.uri.fsPath);
 
       // Load ignore patterns
-      const ignorePatterns = await loadIgnorePatterns(workspaceFolder.uri.fsPath);
+      const ignorePatterns = await loadIgnorePatterns(
+        workspaceFolder.uri.fsPath
+      );
 
       // Generate file structure
-      vscode.window.showInformationMessage(`Scanning files in ${workspaceFolder.name}...`);
-      const structure = await getAllFilesAndFolders(workspaceFolder.uri.fsPath, "", ignorePatterns, workspaceFolder.uri.fsPath);
+      vscode.window.showInformationMessage(
+        `Scanning files in ${workspaceFolder.name}...`
+      );
+      const structure = await getAllFilesAndFolders(
+        workspaceFolder.uri.fsPath,
+        "",
+        ignorePatterns,
+        workspaceFolder.uri.fsPath
+      );
 
       if (vscode.workspace.workspaceFolders.length > 1) {
-        results.push(`\n=== Workspace: ${workspaceFolder.name} ===\n${structure.join('\n')}`);
+        results.push(
+          `\n=== Workspace: ${workspaceFolder.name} ===\n${structure.join(
+            "\n"
+          )}`
+        );
       } else {
-        results.push(structure.join('\n'));
+        results.push(structure.join("\n"));
       }
 
-      outputChannel.appendLine(`Successfully processed workspace: ${workspaceFolder.name}`);
+      outputChannel.appendLine(
+        `Successfully processed workspace: ${workspaceFolder.name}`
+      );
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      vscode.window.showErrorMessage(`Error processing workspace ${workspaceFolder.name}: ${errorMessage}`);
-      outputChannel.appendLine(`Error processing workspace ${workspaceFolder.name}: ${errorMessage}`);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      vscode.window.showErrorMessage(
+        `Error processing workspace ${workspaceFolder.name}: ${errorMessage}`
+      );
+      outputChannel.appendLine(
+        `Error processing workspace ${workspaceFolder.name}: ${errorMessage}`
+      );
 
       // Add error info to results
       if (vscode.workspace.workspaceFolders.length > 1) {
-        results.push(`\n=== Workspace: ${workspaceFolder.name} ===\n[Error: ${errorMessage}]`);
+        results.push(
+          `\n=== Workspace: ${workspaceFolder.name} ===\n[Error: ${errorMessage}]`
+        );
       } else {
         results.push(`[Error: ${errorMessage}]`);
       }
@@ -252,31 +330,48 @@ async function extractFileStructure(): Promise<void> {
   const outputPath = path.join(firstWorkspaceFolder.uri.fsPath, outputFileName);
 
   try {
-    vscode.window.showInformationMessage('Writing output file...');
-    await fs.promises.writeFile(outputPath, results.join('\n'), 'utf8');
+    vscode.window.showInformationMessage("Writing output file...");
+    await fs.promises.writeFile(outputPath, results.join("\n"), "utf8");
 
-    vscode.window.showInformationMessage(`✅ File structure exported successfully to: ${outputFileName}`);
+    vscode.window.showInformationMessage(
+      `✅ File structure exported successfully to: ${outputFileName}`
+    );
     outputChannel.appendLine(`File structure exported to: ${outputPath}`);
-    outputChannel.appendLine(`Total workspaces processed: ${vscode.workspace.workspaceFolders.length}`);
+    outputChannel.appendLine(
+      `Total workspaces processed: ${vscode.workspace.workspaceFolders.length}`
+    );
 
     // Update status bar temporarily
-    const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
+    const statusBarItem = vscode.window.createStatusBarItem(
+      vscode.StatusBarAlignment.Left,
+      100
+    );
     statusBarItem.text = `$(check) FileTree exported to ${outputFileName}`;
     statusBarItem.show();
     setTimeout(() => statusBarItem.dispose(), 5000);
 
     // Copy to clipboard
     try {
-      await vscode.env.clipboard.writeText(results.join('\n'));
-      vscode.window.showInformationMessage('📋 File structure also copied to clipboard!');
-      outputChannel.appendLine('File structure copied to clipboard');
+      await vscode.env.clipboard.writeText(results.join("\n"));
+      vscode.window.showInformationMessage(
+        "📋 File structure also copied to clipboard!"
+      );
+      outputChannel.appendLine("File structure copied to clipboard");
     } catch (clipboardError) {
-      outputChannel.appendLine(`Warning: Failed to copy to clipboard: ${clipboardError instanceof Error ? clipboardError.message : 'Unknown error'}`);
+      outputChannel.appendLine(
+        `Warning: Failed to copy to clipboard: ${
+          clipboardError instanceof Error
+            ? clipboardError.message
+            : "Unknown error"
+        }`
+      );
     }
-
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    vscode.window.showErrorMessage(`❌ Failed to write output file: ${errorMessage}`);
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+    vscode.window.showErrorMessage(
+      `❌ Failed to write output file: ${errorMessage}`
+    );
     outputChannel.appendLine(`Error writing output file: ${errorMessage}`);
     throw new Error(`Failed to write output file: ${errorMessage}`);
   }
@@ -285,22 +380,30 @@ async function extractFileStructure(): Promise<void> {
 // Activate the extension
 export function activate(context: vscode.ExtensionContext) {
   // Create output channel for logging
-  outputChannel = vscode.window.createOutputChannel('FileTree Exporter');
+  outputChannel = vscode.window.createOutputChannel("FileTree Exporter");
   context.subscriptions.push(outputChannel);
 
-  console.log('Congratulations, your extension "filetree-exporter" is now active!');
-  outputChannel.appendLine('FileTree Exporter extension activated');
+  console.log(
+    'Congratulations, your extension "filetree-exporter" is now active!'
+  );
+  outputChannel.appendLine("FileTree Exporter extension activated");
 
   // Register the command
-  const disposable = vscode.commands.registerCommand('extension.extractFileStructure', async () => {
-    try {
-      await extractFileStructure();
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      vscode.window.showErrorMessage(`FileTree Exporter Error: ${errorMessage}`);
-      outputChannel.appendLine(`Error: ${errorMessage}`);
+  const disposable = vscode.commands.registerCommand(
+    "extension.extractFileStructure",
+    async () => {
+      try {
+        await extractFileStructure();
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown error occurred";
+        vscode.window.showErrorMessage(
+          `FileTree Exporter Error: ${errorMessage}`
+        );
+        outputChannel.appendLine(`Error: ${errorMessage}`);
+      }
     }
-  });
+  );
 
   context.subscriptions.push(disposable);
 }
@@ -308,7 +411,7 @@ export function activate(context: vscode.ExtensionContext) {
 // This method is called when your extension is deactivated
 export function deactivate() {
   if (outputChannel) {
-    outputChannel.appendLine('FileTree Exporter extension deactivated');
+    outputChannel.appendLine("FileTree Exporter extension deactivated");
     outputChannel.dispose();
   }
 }
