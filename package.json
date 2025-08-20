@@ -1,5 +1,6 @@
 {
   "name": "filetree-exporter",
+  "publisher": "apex-tools",
   "displayName": "FileTree Exporter",
   "description": "Export the file and folder structure of your project to a readable text file.",
   "version": "0.0.1",
@@ -37,5 +38,11 @@
     "typescript": "^5.8.3",
     "@vscode/test-cli": "^0.0.11",
     "@vscode/test-electron": "^2.5.2"
+  },
+  "author": "1-apex",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/1-apex/filetree-exporter"
   }
 }
+

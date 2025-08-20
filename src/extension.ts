@@ -69,9 +69,6 @@ tmp/
 temp/
 `;
 
-/**
- * Ensure .filetreeignore exists, create with defaults if not
- */
 async function ensureFileTreeIgnoreExists(rootPath: string): Promise<void> {
   const ignoreFilePath = path.join(rootPath, ".filetreeignore");
 
